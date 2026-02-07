@@ -1,0 +1,20 @@
+FROM python:3.9
+
+USER root
+
+RUN apt-get update -y
+
+RUN apt-get install -y nodejs npm python3-pip python3-dev build-essential
+
+RUN pip install flask 
+RUN pip install flask-cors 
+RUN pip install -q -U google-genai
+
+WORKDIR /helpercell/server
+
+COPY . .
+
+EXPOSE 3000
+
+CMD ["python", "-m", "flask", "run"]
+

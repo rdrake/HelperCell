@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>{% block title %} Input Information {% endblock %}</h1>
+    {% for message in messages %}
+        <div class='message'>
+            <h3 id="type">{{ message['type'] }}</h3>
+
+            {% if message['type'] == "Student Answer" or message['type'] == "Question" %}
+            <pre id='content'>{{ message['information'] }}</prev>
+            {% else %}
+            <p contenteditable="true">{{ message['information'] }}</p>
+            {% endif %}
+
+        </div>
+        
+    {% endfor %}
+     <!-- <button type="button">Update AI</button>  -->
+{% endblock %}
+

@@ -1,0 +1,12 @@
+version: '3'
+services:
+  jupyterlab:
+    image: quay.io/jupyter/datascience-notebook:latest
+    restart: always
+    volumes:
+      - ./notebooks:/home/
+    ports:
+      - '8888:8888'
+    user: "${UID}:${GID}" # <-- Add this line
+    environment:
+      - JUPYTER_TOKEN=2314b3892edec88c7abe740a2841239c5c6ec0a08166cc74
