@@ -2,6 +2,7 @@ import {
   JupyterFrontEnd,
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
+import { PageConfig } from '@jupyterlab/coreutils';
 
 import { ICommandPalette, showDialog, Dialog } from '@jupyterlab/apputils';
 import { INotebookTracker, NotebookActions } from '@jupyterlab/notebook';
@@ -222,7 +223,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       activeCell = notebook.activeCell;
       activeCell!.model.sharedModel.source = "Feedback loading...";
 
-      content = await getFeedback("http://127.0.0.1:5000/", code, question);
+      const feedbackUrl = PageConfig.getBaseUrl() + 'proxy/5000/';
+      content = await getFeedback(feedbackUrl, code, question);
 
       // add content to nextly created cell
       activeCell!.model.sharedModel.source = content;
