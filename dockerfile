@@ -14,7 +14,6 @@ RUN pip install --no-cache-dir build "jupyterlab>=4.0.0,<5" hatchling \
     hatch-nodejs-version "hatch-jupyter-builder>=0.5"
 
 COPY package.json yarn.lock .yarnrc.yml tsconfig.json setup.py pyproject.toml install.json LICENSE README.md ./
-COPY .yarn .yarn
 COPY schema schema
 COPY style style
 COPY src src
