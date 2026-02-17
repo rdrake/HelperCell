@@ -1,39 +1,40 @@
-FROM python:3.11-slim
+# ---------------------------------------------------------------------------
+# Build stage — compile the JupyterLab extension into a wheel
+# ---------------------------------------------------------------------------
+ARG Z2JH_VERSION=4.3.2
+
+FROM python:3.12-bookworm AS build-stage
+
+RUN apt-get update && apt-get install -y --no-install-recommends nodejs npm \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+RUN pip install --no-cache-dir build "jupyterlab>=4.0.0,<5" hatchling \
+    hatch-nodejs-version "hatch-jupyter-builder>=0.5"
+
+COPY package.json yarn.lock .yarnrc.yml tsconfig.json setup.py pyproject.toml install.json LICENSE README.md ./
+COPY .yarn .yarn
+COPY schema schema
+COPY style style
+COPY src src
+COPY feedback feedback
+
+RUN jlpm install
+RUN pip wheel --no-deps --wheel-dir=/tmp/wheels .
+
+# ---------------------------------------------------------------------------
+# Runtime stage — extend the upstream z2jh singleuser image
+# ---------------------------------------------------------------------------
+ARG Z2JH_VERSION
+FROM quay.io/jupyterhub/k8s-singleuser-sample:${Z2JH_VERSION}
 
 USER root
 
-RUN apt-get update -y
+COPY --from=build-stage /tmp/wheels/*.whl /tmp/wheels/
+RUN pip install --no-cache-dir \
+        jupyter-server-proxy \
+        /tmp/wheels/feedback-*.whl \
+ && rm -rf /tmp/wheels
 
-RUN apt-get install -y nodejs npm python3-pip python3-dev build-essential
-
-WORKDIR /helpercell
-
-RUN pip install jupyterlab 
-RUN pip install flask 
-RUN pip install flask-cors 
-RUN pip install jupyter-server-proxy
-RUN npm install jquery
-RUN npm install --save-dev @types/jquery
-RUN npm install firebase
-
-COPY . .
-
-WORKDIR /helpercell/server
-RUN pip install google-genai
-ENV FLASK_APP=app.py
-
-WORKDIR /helpercell
-
-RUN jlpm install
-
-RUN jlpm run build
-
-RUN jupyter labextension develop . --overwrite
-
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
-EXPOSE 8888
-EXPOSE 5000
-
-CMD ["/entrypoint.sh"]
+USER ${NB_USER}
