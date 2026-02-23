@@ -5,15 +5,21 @@ import {
 
 import { ICommandPalette, InputDialog } from '@jupyterlab/apputils';
 import { INotebookTracker, NotebookActions, NotebookPanel } from '@jupyterlab/notebook';
-import {bugIcon} from '@jupyterlab/ui-components';
 import { initializeApp } from "firebase/app";
 import { getFirestore,  doc, setDoc  } from "firebase/firestore";
 import {firebaseConfig} from "./config"
+import helpercellIcon from "../style/icons/helpercellIcon.svg"
+import { LabIcon } from '@jupyterlab/ui-components';
+
+export const helperCellIcon = new LabIcon({
+  name: 'helpercell:feedback',
+  svgstr: helpercellIcon
+});
 
 const CommandIds = {runCodeCell: 'toolbar-button:run-code-cell'};
-var icon = bugIcon;
+var icon = helperCellIcon;
 var timesRun = 0;
-var participaint: any;
+var participaint: any = '';
 
 interface promptData {
   studentAnswer: string;
@@ -23,10 +29,56 @@ interface promptData {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+function getUserId()
+{
+  InputDialog.getText({
+          title: 'Please enter your participant code' 
+        }).then(value => {
+          if (value.value == '')
+          {
+            alert("Participant code can not be blank");
+            getUserId();
+          }
+          else
+          {
+            participaint = value.value;
+          }
+          
+        });
+}
+
+function getUserFeedback()
+{
+  console.log(participaint);
+  if(timesRun > 0 && participaint)
+      {
+      InputDialog.getItem({
+        title: 'How useful was the last feedback you received',
+        items: ['', 'Very useful', 'Useful', 'Neutral', 'Useless', 'Very Useless'],
+        editable: false,
+        }).then(value => {
+          console.log(value.value);
+          if(value.value == '')
+          {
+            alert("Feedback can not be blank");
+            getUserFeedback();
+          }
+          else
+          {
+            saveData(value.value);
+          }
+
+        });
+      }
+      else{
+        getUserId()
+      }
+}
+
 async function saveData(value: any)
 {
   await setDoc(doc(db, "participaints", participaint), {
-    ["feedback"+timesRun]: value
+    ["feedback"+(timesRun-1)]: value
 });   
 }
 
@@ -115,27 +167,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       var activeCell = notebook.activeCell;
 
       
-
-      if(timesRun > 0)
-      {
-        
-      InputDialog.getItem({
-        title: 'Please rate the feedback you received',
-        items: ['Excellent', 'Good', 'Fair', 'Average', 'Poor'],
-        editable: false,
-        }).then(value => {
-          console.log(value.value);
-          saveData(value.value)
-        });
-      }
-      else{
-        InputDialog.getText({
-          title: 'Please enter your partipant code' 
-        }).then(value => {
-          participaint = value.value;
-});
-
-      }
+      getUserFeedback();
+      
 
       timesRun += 1;
       var [code, question] = getInstructions(notebook);
@@ -152,6 +185,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       activeCell!.model.sharedModel.source = content;
       commands.execute('notebook:change-cell-to-markdown');
       activeCell = notebook.activeCell;
+      commands.execute('notebook:run-cell');
       activeCell!.model.sharedModel.setMetadata("editable", false);
       activeCell!.model.sharedModel.setMetadata("deletable", false);
      },
