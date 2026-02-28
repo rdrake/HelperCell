@@ -8,12 +8,12 @@
   "jupyter.lab.toolbars": {
     "Cell": [
       {
-        "name": "run-code-cell",
-        "command": "toolbar-button:run-code-cell"
+        "name": "helper-cell-button",
+        "command": "helpercell:run-code-cell"
       },
       {
-        "name": "render-markdows-cell",
-        "command": "toolbar-button:render-markdown-cell"
+        "name": "comment-button",
+        "command": "helpercell:add-comment"
       }
     ]
   }}

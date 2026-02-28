@@ -4,7 +4,7 @@ import {
 } from '@jupyterlab/application';
 
 import { ICommandPalette, InputDialog } from '@jupyterlab/apputils';
-import { INotebookTracker, NotebookActions, NotebookPanel } from '@jupyterlab/notebook';
+import { INotebookTracker, NotebookActions } from '@jupyterlab/notebook';
 import { initializeApp } from "firebase/app";
 import { getFirestore,  doc, setDoc  } from "firebase/firestore";
 import {firebaseConfig} from "./config"
@@ -22,7 +22,7 @@ export const commentIcon = new LabIcon({
   svgstr: comment
 });
 
-const CommandIds = {runCodeCell: 'toolbar-button:run-code-cell'};
+const CommandIds = {runCodeCell: 'helpercell:run-code-cell', addComment: 'helpercell:add-comment'};
 var icon = helperCellIcon;
 var timesRun = 0;
 var participaint: any = '';
@@ -56,7 +56,7 @@ function getUserId()
 function getUserFeedback()
 {
   console.log(participaint);
-  if(timesRun > 0 && participaint)
+  if(participaint)
       {
       InputDialog.getItem({
         title: 'How useful was the last feedback you received',
@@ -158,7 +158,6 @@ const plugin: JupyterFrontEndPlugin<void> = {
     app: JupyterFrontEnd,
     palette: ICommandPalette,
     tracker: INotebookTracker,
-    nbPanel: NotebookPanel
   ) => {
     const { commands } = app;
 
@@ -171,16 +170,12 @@ const plugin: JupyterFrontEndPlugin<void> = {
       const current = tracker.currentWidget;
       const notebook = current!.content;
       var activeCell = notebook.activeCell;
-
-      
-      getUserFeedback();
+      console.log(timesRun);
       
 
       timesRun += 1;
       var [code, question] = getInstructions(notebook);
 
-
-      // inserts new cell
       if (timesRun > 1)
       {
         NotebookActions.insertAbove(notebook);
@@ -196,17 +191,38 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
       const content = await getFeedback("http://127.0.0.1:5000/", code, question);
 
-      // adds content to nextly created cell
+      // add content to nextly created cell
       activeCell!.model.sharedModel.source = content;
-      commands.execute('notebook:change-cell-to-markdown');
-      activeCell = notebook.activeCell;
-      commands.execute('notebook:run-cell');
-      activeCell!.model.sharedModel.setMetadata("editable", false);
-      activeCell!.model.sharedModel.setMetadata("deletable", false);
-     },
-     isVisible: () => tracker.activeCell?.model.type === 'code'
-    });
 
+
+        commands.execute('notebook:change-cell-to-markdown');
+        activeCell = notebook.activeCell;
+        commands.execute('notebook:run-cell');
+        activeCell!.model.sharedModel.setMetadata("editable", false);
+        activeCell!.model.sharedModel.setMetadata("deletable", false);
+        activeCell!.model.sharedModel.setMetadata("helpercell", true);
+        app.commands.notifyCommandChanged(CommandIds.addComment);
+
+      },
+      isVisible: () => tracker.activeCell?.model.type === 'code'
+      });
+
+      // Provide Comments
+      commands.addCommand(CommandIds.addComment, {
+      icon: commentIcon,
+      label: 'Provide feedback',
+      execute: () => {
+
+        console.log('Im here!');
+        getUserFeedback();
+
+      },
+      isVisible: () => {
+        var activeCell = tracker.activeCell;
+        
+        return !!activeCell?.model.sharedModel.getMetadata("helpercell") === true;
+      }
+      });
   
   }
   
