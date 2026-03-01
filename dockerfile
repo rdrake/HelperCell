@@ -36,6 +36,4 @@ RUN chmod +x /entrypoint.sh
 EXPOSE 8888
 EXPOSE 5000
 
-RUN chmod +x /entrypoint.sh
-
-CMD ["/bin/bash", "/entrypoint.sh"]
+CMD ["/entrypoint.sh"]
