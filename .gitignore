@@ -118,6 +118,9 @@ dmypy.json
 
 # End of https://www.gitignore.io/api/python
 
+# Environment variables
+.env
+
 # OSX files
 .DS_Store
 
