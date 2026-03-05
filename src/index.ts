@@ -10,6 +10,7 @@ import { getFirestore,  doc, setDoc, updateDoc  } from "firebase/firestore";
 import {firebaseConfig} from "./config"
 import helpercellIcon from "../style/icons/helpercellIcon.svg"
 import comment from "../style/icons/comment.svg"
+import confirm from "../style/icons/confirm.svg"
 import { LabIcon,  } from '@jupyterlab/ui-components';
 import { IUserManager, User } from '@jupyterlab/services';
 import { Widget } from '@lumino/widgets';
@@ -25,11 +26,16 @@ export const commentIcon = new LabIcon({
   svgstr: comment
 });
 
+export const confirmIcon = new LabIcon({
+  name: 'helpercell:confirm',
+  svgstr: confirm
+});
+
 const feedbackBody = new Widget();
 feedbackBody.node.innerHTML = `
   <label>How useful was the last feedback you received: 
     <select id="feedback-select">
-    <option value="empty"></option>
+    <option selected value="empty"></option>
       <option value="very-useful">Very useful</option>
       <option value="useful">Useful</option>
       <option value="neutral">Neutral</option>
@@ -42,7 +48,7 @@ feedbackBody.node.innerHTML = `
 `;
 
 const CommandIds = {runCodeCell: 'helpercell:run-code-cell', addComment: 'helpercell:add-comment'};
-var icon = helperCellIcon;
+var icon = commentIcon;
 var timesRun = 0;
 var participant: any = '';
 var content = '';
@@ -137,11 +143,13 @@ function getInstructions(notebook: any)
   let instructions = '';
   let code = '';
   let cellCount = 0;
+  var currentIndex = notebook.activeCellIndex;
 
   // goes through each cell in the notebook until it reaches the start of the question
   while (!instructions.includes("Challenge") && !instructions.includes("Part"))
   {
     var cell = notebook.activeCell;
+    var currentIndex = notebook.activeCellIndex;
     cellCount += 1; // update cell count
     if (cell.model.type == 'markdown')
     {
@@ -150,6 +158,11 @@ function getInstructions(notebook: any)
     else
     {
       code = cell!.model.sharedModel.source + code;
+    }
+
+    if (currentIndex === 0)
+    {
+      break;
     }
 
     // next cell
@@ -185,7 +198,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
     
     // HelperCell
     commands.addCommand(CommandIds.runCodeCell, {
-     icon: icon,
+     icon: helperCellIcon,
      caption: 'HelperCell',
      execute: async () => {
       const current = tracker.currentWidget;
@@ -229,12 +242,17 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
       // Provide Comments
       commands.addCommand(CommandIds.addComment, {
-      icon: commentIcon,
+      icon: () => {
+        const activeCell = tracker.activeCell;
+        const feedbackSubmitted = activeCell?.model.sharedModel.getMetadata("feedbackSent");
+        return feedbackSubmitted ? confirmIcon : icon;
+      },
       label: 'Provide feedback',
       execute: () => {
-
+        const activeCell = tracker.activeCell;
         getUserFeedback();
-
+        activeCell!.model.sharedModel.setMetadata("feedbackSent", true);
+        app.commands.notifyCommandChanged(CommandIds.addComment);
       },
       isVisible: () => {
         var activeCell = tracker.activeCell;
