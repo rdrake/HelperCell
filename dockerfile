@@ -37,4 +37,3 @@ RUN pip install --no-cache-dir \
  && rm -rf /tmp/wheels
 
 USER ${NB_USER}
-

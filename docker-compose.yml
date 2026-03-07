@@ -3,9 +3,6 @@ services:
     build:
       context: .
       dockerfile: dockerfile
-    volumes:
-      - ./jupyterhub_config.py:/srv/jupyterhub/jupyterhub_config.py:ro
-      - ./jupyterhub/users.txt:/srv/jupyterhub/jupyterhub/users.txt:ro
     ports:
       - "8888:8888"
     command: >
