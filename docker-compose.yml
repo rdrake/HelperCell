@@ -2,21 +2,24 @@ services:
   jupyterhub:
     build:
       context: .
-      dockerfile: dockerfile
+      target: hub
     ports:
-      - "8000:8000" # JupyterHub default port
-      - "5000:5000" # Mapping for the Flask Sidecar
+      - "8000:8000"
     volumes:
       - ./jupyterhub_config.py:/srv/jupyterhub/jupyterhub_config.py
-      # - jupyterhub_data:/data
-    command: >
-      jupyterhub -f /srv/jupyterhub/jupyterhub_config.py
+      - hub-db:/srv/jupyterhub/data
+      - user-data:/srv/notebooks
 
   flask-sidecar:
     build:
       context: ./server
       dockerfile: Dockerfile
-    network_mode: "service:jupyterlab"
+    network_mode: "service:jupyterhub"
+    command: ["python", "-m", "flask", "run", "--host=127.0.0.1", "--port=5000"]
     environment:
       SECRET_KEY: "local-dev-secret"
       GEMINI_API_KEY: "${GEMINI_API_KEY}"
+
+volumes:
+  hub-db:
+  user-data:

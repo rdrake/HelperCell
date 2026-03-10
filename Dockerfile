@@ -23,10 +23,26 @@ RUN jlpm install
 RUN pip wheel --no-deps --wheel-dir=/tmp/wheels .
 
 # ---------------------------------------------------------------------------
-# Runtime stage — extend the upstream z2jh singleuser image
+# Local dev — JupyterHub + singleuser in one image
+# ---------------------------------------------------------------------------
+FROM quay.io/jupyterhub/jupyterhub:5 AS hub
+
+RUN pip install --no-cache-dir \
+    jupyterhub-nativeauthenticator \
+    jupyterlab \
+    notebook \
+    jupyter-server-proxy
+
+COPY --from=build-stage /tmp/wheels/*.whl /tmp/wheels/
+RUN pip install --no-cache-dir /tmp/wheels/feedback-*.whl && rm -rf /tmp/wheels
+
+CMD ["jupyterhub", "-f", "/srv/jupyterhub/jupyterhub_config.py"]
+
+# ---------------------------------------------------------------------------
+# Production — singleuser image for z2jh
 # ---------------------------------------------------------------------------
 ARG Z2JH_VERSION
-FROM quay.io/jupyterhub/k8s-singleuser-sample:${Z2JH_VERSION}
+FROM quay.io/jupyterhub/k8s-singleuser-sample:${Z2JH_VERSION} AS singleuser
 
 USER root
 
